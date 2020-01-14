@@ -4,8 +4,6 @@ set_property source_mgmt_mode All [current_project]
 
 set src ../src
 
-read_xdc $src/early.xdc
-
 read_verilog $src/tests_axi_lite_slave_top.v
 
 # copy to the build dir to avoid polluting $src
@@ -18,6 +16,8 @@ open_bd_design Top.bd
 
 read_verilog $src/Top_wrapper.v
 
+read_xdc $src/early.xdc
+set_property PROCESSING_ORDER EARLY [get_files $src/early.xdc]
 read_xdc $src/normal.xdc
 read_xdc $src/floorplanning.xdc
 
