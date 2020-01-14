@@ -4,6 +4,11 @@ set_property source_mgmt_mode All [current_project]
 
 set src ../src
 
+if [file exists static.dcp] {
+    puts "won't overwrite static.dcp"
+    exit 2
+}
+
 read_verilog $src/tests_axi_lite_slave_top.v
 
 # copy to the build dir to avoid polluting $src
@@ -34,4 +39,4 @@ route_design
 update_design -cell Top_i/tests_axi_lite_slave_0 -black_box
 lock_design -level routing
 
-write_checkpoint -force static.dcp
+write_checkpoint static.dcp
