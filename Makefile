@@ -1,7 +1,16 @@
 ROOT := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
-STATIC_SRC=src/early.xdc src/normal.xdc src/floorplanning.xdc src/mig_a.prj src/Top.bd src/Top_wrapper.v
+STATIC_SRC=src/early.xdc src/normal.xdc src/floorplanning.xdc src/mig_a.prj src/Top.bd
 RECONFIGURABLE_SRC=src/tests_axi_lite_slave_top.v
 BUILD=build
+ARCHIVE=archive
+
+${ARCHIVE}/timestamp: ${BUILD}/nf_popr.mcs
+	@mkdir -p $(dir $@)
+	tar czvf ${ARCHIVE}/nf_popr_`date +%Y%m%d_%H%M%S -r $<`.tar.gz \
+	   ${BUILD}/nf_popr.mcs \
+           ${BUILD}/nf_popr.bit \
+	   ${BUILD}/*.dcp
+	 echo `date +%Y%m%d_%H%M%S -r $<` > $@
 
 ${BUILD}/nf_popr.mcs: scripts/write_mcs.tcl ${BUILD}/nf_popr.bit
 	@mkdir -p $(dir $@)
