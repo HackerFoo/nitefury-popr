@@ -545,7 +545,8 @@ module __primitive_dup_array #(
         end
     end
 endmodule
-module tests_axi_lite_slave (
+
+module tests_axil_map_w (
 
   input wire clk, input wire nrst,
   input wire in_valid, output wire in_ready,
@@ -602,11 +603,13 @@ module tests_axi_lite_slave (
   wire               intf6_valid;
   wire               intf6_ready;
   wire inst7_in_ready;
-  wire lst7_valid; wire lst7_ready;
+  wire [32-1:0] lst7; wire lst7_valid; wire lst7_ready;
   wire inst8_in_ready;
-  wire [32-1:0] lst8; wire lst8_valid; wire lst8_ready;
+  wire [33-1:0] lst8; wire lst8_valid; wire lst8_ready;
+  wire inst9_in_ready;
+  wire lst9_valid; wire lst9_ready;
 
-  assign in_ready = inst5_in_ready;
+  assign in_ready = inst5_in_ready & inst8_in_ready;
 
   wire inst5_out_valid;
   __primitive_dup_array #(.in0AN(32), .in0DN(32), .out0AN(32), .out0DN(32), .out1AN(32), .out1DN(32)) __primitive_dup_array_inst5(
@@ -616,7 +619,7 @@ module tests_axi_lite_slave (
       .in_valid(in_valid),
       .out_valid(inst5_out_valid),
       .in_ready(inst5_in_ready),
-      .out_ready(inst7_in_ready & inst8_in_ready),
+      .out_ready(inst7_in_ready & inst9_in_ready),
 
       .in0_addr(intf4_addr),
       .in0_we(intf4_we),
@@ -641,34 +644,13 @@ module tests_axi_lite_slave (
     );
 
   wire inst7_out_valid;
-  io_stream_write_array_r0 #() io_stream_write_array_r0_inst7(
+  io_stream_read_array_r0 #() io_stream_read_array_r0_inst7(
 
       .clk(clk),
       .nrst(nrst),
       .in_valid(inst5_out_valid),
       .out_valid(inst7_out_valid),
       .in_ready(inst7_in_ready),
-      .out_ready(out_ready),
-
-      .in0_addr(intf5_addr),
-      .in0_we(intf5_we),
-      .in0_di(intf5_di),
-      .in0_do(intf5_do),
-      .in0_valid(intf5_valid),
-      .in0_ready(intf5_ready),
-      .in1(lst2), .in1_valid(lst2_valid), .in1_ready(lst2_ready),
-      .in2(lst1), .in2_valid(lst1_valid), .in2_ready(lst1_ready),
-      .out0_valid(lst7_valid), .out0_ready(lst7_ready)
-    );
-
-  wire inst8_out_valid;
-  io_stream_read_array_r0 #() io_stream_read_array_r0_inst8(
-
-      .clk(clk),
-      .nrst(nrst),
-      .in_valid(inst5_out_valid),
-      .out_valid(inst8_out_valid),
-      .in_ready(inst8_in_ready),
       .out_ready(out_ready),
 
       .in0_addr(intf6_addr),
@@ -678,18 +660,270 @@ module tests_axi_lite_slave (
       .in0_valid(intf6_valid),
       .in0_ready(intf6_ready),
       .in1(lst3), .in1_valid(lst3_valid), .in1_ready(lst3_ready),
+      .out0(lst7), .out0_valid(lst7_valid), .out0_ready(lst7_ready)
+    );
+
+  wire inst8_out_valid;
+  tests_axil_map_w_r0 #() tests_axil_map_w_r0_inst8(
+
+      .clk(clk),
+      .nrst(nrst),
+      .in_valid(in_valid),
+      .out_valid(inst8_out_valid),
+      .in_ready(inst8_in_ready),
+      .out_ready(inst9_in_ready),
+      .in0(lst1), .in0_valid(lst1_valid), .in0_ready(lst1_ready),
       .out0(lst8), .out0_valid(lst8_valid), .out0_ready(lst8_ready)
     );
-    wire block1_valid = inst7_out_valid & inst8_out_valid;
+
+  wire inst9_out_valid;
+  io_stream_write_array_r0 #() io_stream_write_array_r0_inst9(
+
+      .clk(clk),
+      .nrst(nrst),
+      .in_valid(inst5_out_valid & inst8_out_valid),
+      .out_valid(inst9_out_valid),
+      .in_ready(inst9_in_ready),
+      .out_ready(out_ready),
+
+      .in0_addr(intf5_addr),
+      .in0_we(intf5_we),
+      .in0_di(intf5_di),
+      .in0_do(intf5_do),
+      .in0_valid(intf5_valid),
+      .in0_ready(intf5_ready),
+      .in1(lst2), .in1_valid(lst2_valid), .in1_ready(lst2_ready),
+      .in2(lst8), .in2_valid(lst8_valid), .in2_ready(lst8_ready),
+      .out0_valid(lst9_valid), .out0_ready(lst9_ready)
+    );
+    wire block1_valid = inst7_out_valid & inst9_out_valid;
 
   wire valid = block1_valid;
   assign out_valid = valid;
 
+  assign out0 = lst7;
+  assign out0_valid = lst7_valid;
+  assign lst7_ready = out0_ready;
+  assign out1_valid = lst9_valid;
+  assign lst9_ready = out1_ready;
+
+endmodule
+
+module io_stream_read_array_r0 (
+
+  input wire clk, input wire nrst,
+  input wire in_valid, output wire in_ready,
+  output wire out_valid, input wire out_ready,
+
+  output wire [(32)-1:0] in0_addr,
+  output wire               in0_we,
+  output wire [(32)-1:0] in0_di,
+  input  wire [(32)-1:0] in0_do,
+  output wire               in0_valid,
+  input  wire               in0_ready,
+  input wire [32-1:0] in1, input wire in1_valid, output wire in1_ready,
+  output wire [32-1:0] out0, output wire out0_valid, input wire out0_ready
+);
+
+  wire [32-1:0] lst1 = in1;
+  reg lst1_valid_reg;
+  wire lst1_valid = in1_valid;
+  wire lst1_ready; assign in1_ready = lst1_ready;
+
+  wire [(32)-1:0] intf2_addr;
+  assign in0_addr = intf2_addr;
+  wire               intf2_we;
+  assign in0_we = intf2_we;
+  wire [(32)-1:0] intf2_di;
+  assign in0_di = intf2_di;
+  wire [(32)-1:0] intf2_do = in0_do;
+  wire intf2_valid;
+  assign in0_valid = intf2_valid;
+  wire intf2_ready = in0_ready;
+  wire inst3_in_ready;
+  wire lst3_valid; wire lst3_ready;
+  wire [32-1:0] int4;
+  wire inst5_in_ready;
+
+  wire [(32)-1:0] intf5_addr;
+  wire               intf5_we;
+  wire [(32)-1:0] intf5_di;
+  wire [(32)-1:0] intf5_do;
+  wire               intf5_valid;
+  wire               intf5_ready;
+  wire [32-1:0] int6;
+  localparam lst7_valid = 1'b1; wire lst7_ready;
+  wire inst8_in_ready;
+  wire [32-1:0] lst8; wire lst8_valid; wire lst8_ready;
+
+  reg active = 1'b0;
+  assign in_ready = ~active & inst3_in_ready;
+
+  wire inst3_out_valid;
+  __primitive_ap01 #(.in0N(32), .out0N(0), .out1N(32)) __primitive_ap01_inst3(
+
+      .clk(clk),
+      .nrst(nrst),
+      .in_valid(active),
+      .out_valid(inst3_out_valid),
+      .in_ready(inst3_in_ready),
+      .out_ready(inst5_in_ready),
+      .in0(lst1), .in0_valid(lst1_valid), .in0_ready(lst1_ready),
+      .out0_valid(lst3_valid), .out0_ready(lst3_ready),
+      .out1(int4)
+    );
+
+  wire inst5_out_valid;
+  __primitive_read_array #(.in0AN(32), .in0DN(32), .in1N(32), .out0AN(32), .out0DN(32), .out1N(32)) __primitive_read_array_inst5(
+
+      .clk(clk),
+      .nrst(nrst),
+      .in_valid(inst3_out_valid),
+      .out_valid(inst5_out_valid),
+      .in_ready(inst5_in_ready),
+      .out_ready(inst8_in_ready),
+
+      .in0_addr(intf2_addr),
+      .in0_we(intf2_we),
+      .in0_di(intf2_di),
+      .in0_do(intf2_do),
+      .in0_valid(intf2_valid),
+      .in0_ready(intf2_ready),
+      .in1(int4),
+
+      .out0_addr(intf5_addr),
+      .out0_we(intf5_we),
+      .out0_di(intf5_di),
+      .out0_do(intf5_do),
+      .out0_valid(intf5_valid),
+      .out0_ready(intf5_ready),
+      .out1(int6)
+    );
+    assign {intf5_addr, intf5_we, intf5_di, intf5_valid} = 0;
+    assign lst3_ready = 1'b1;
+
+  wire inst8_out_valid;
+  __primitive_pushr1 #(.in0N(0), .in1N(32), .out0N(32)) __primitive_pushr1_inst8(
+
+      .clk(clk),
+      .nrst(nrst),
+      .in_valid(inst5_out_valid),
+      .out_valid(inst8_out_valid),
+      .in_ready(inst8_in_ready),
+      .out_ready(1'b1),
+      .in0_valid(lst7_valid), .in0_ready(lst7_ready),
+      .in1(int6),
+      .out0(lst8), .out0_valid(lst8_valid), .out0_ready(lst8_ready)
+    );
+    wire block1_valid = inst8_out_valid;
+
+  wire valid = 1'b0;
+  assign out_valid = active & valid;
+
+  always @(posedge clk) begin
+    if(!nrst) begin
+      active <= 1'b0;
+    end
+    else if(in_valid & ~active) begin
+      active <= 1'b1;
+    end
+    else if(valid) begin
+       if(out_ready) active <= 1'b0;
+    end
+    else begin
+      if(block1_valid) begin
+      end
+    end
+  end
+
   assign out0 = lst8;
   assign out0_valid = lst8_valid;
   assign lst8_ready = out0_ready;
-  assign out1_valid = lst7_valid;
-  assign lst7_ready = out1_ready;
+
+endmodule
+
+module tests_axil_map_w_r0 (
+
+  input wire clk, input wire nrst,
+  input wire in_valid, output wire in_ready,
+  output wire out_valid, input wire out_ready,
+  input wire [32-1:0] in0, input wire in0_valid, output wire in0_ready,
+  output wire [33-1:0] out0, output wire out0_valid, input wire out0_ready
+);
+
+  wire [32-1:0] lst1 = in0;
+  reg lst1_valid_reg;
+  wire lst1_valid = in0_valid;
+  wire lst1_ready; assign in0_ready = lst1_ready;
+  wire inst2_in_ready;
+  wire lst2_valid; wire lst2_ready;
+  wire [32-1:0] int3;
+  wire [33-1:0] int4;
+  localparam [2-1:0] int5 = 3;
+  localparam lst6_valid = 1'b1; wire lst6_ready;
+  wire inst7_in_ready;
+  wire [33-1:0] lst7; wire lst7_valid; wire lst7_ready;
+
+  reg active = 1'b0;
+  assign in_ready = ~active & inst2_in_ready;
+
+  wire inst2_out_valid;
+  __primitive_ap01 #(.in0N(32), .out0N(0), .out1N(32)) __primitive_ap01_inst2(
+
+      .clk(clk),
+      .nrst(nrst),
+      .in_valid(active),
+      .out_valid(inst2_out_valid),
+      .in_ready(inst2_in_ready),
+      .out_ready(inst7_in_ready),
+      .in0(lst1), .in0_valid(lst1_valid), .in0_ready(lst1_ready),
+      .out0_valid(lst2_valid), .out0_ready(lst2_ready),
+      .out1(int3)
+    );
+    __primitive_add #(.in0N(32), .in1N(2), .out0N(33)) __primitive_add_inst4(
+      .in0(int3),
+      .in1(int5),
+      .out0(int4)
+    );
+    assign lst2_ready = 1'b1;
+
+  wire inst7_out_valid;
+  __primitive_pushr1 #(.in0N(0), .in1N(33), .out0N(33)) __primitive_pushr1_inst7(
+
+      .clk(clk),
+      .nrst(nrst),
+      .in_valid(inst2_out_valid),
+      .out_valid(inst7_out_valid),
+      .in_ready(inst7_in_ready),
+      .out_ready(1'b1),
+      .in0_valid(lst6_valid), .in0_ready(lst6_ready),
+      .in1(int4),
+      .out0(lst7), .out0_valid(lst7_valid), .out0_ready(lst7_ready)
+    );
+    wire block1_valid = inst7_out_valid;
+
+  wire valid = 1'b0;
+  assign out_valid = active & valid;
+
+  always @(posedge clk) begin
+    if(!nrst) begin
+      active <= 1'b0;
+    end
+    else if(in_valid & ~active) begin
+      active <= 1'b1;
+    end
+    else if(valid) begin
+       if(out_ready) active <= 1'b0;
+    end
+    else begin
+      if(block1_valid) begin
+      end
+    end
+  end
+
+  assign out0 = lst7;
+  assign out0_valid = lst7_valid;
+  assign lst7_ready = out0_ready;
 
 endmodule
 
@@ -849,145 +1083,13 @@ module io_stream_write_array_r0 (
 
 endmodule
 
-module io_stream_read_array_r0 (
-
-  input wire clk, input wire nrst,
-  input wire in_valid, output wire in_ready,
-  output wire out_valid, input wire out_ready,
-
-  output wire [(32)-1:0] in0_addr,
-  output wire               in0_we,
-  output wire [(32)-1:0] in0_di,
-  input  wire [(32)-1:0] in0_do,
-  output wire               in0_valid,
-  input  wire               in0_ready,
-  input wire [32-1:0] in1, input wire in1_valid, output wire in1_ready,
-  output wire [32-1:0] out0, output wire out0_valid, input wire out0_ready
-);
-
-  wire [32-1:0] lst1 = in1;
-  reg lst1_valid_reg;
-  wire lst1_valid = in1_valid;
-  wire lst1_ready; assign in1_ready = lst1_ready;
-
-  wire [(32)-1:0] intf2_addr;
-  assign in0_addr = intf2_addr;
-  wire               intf2_we;
-  assign in0_we = intf2_we;
-  wire [(32)-1:0] intf2_di;
-  assign in0_di = intf2_di;
-  wire [(32)-1:0] intf2_do = in0_do;
-  wire intf2_valid;
-  assign in0_valid = intf2_valid;
-  wire intf2_ready = in0_ready;
-  wire inst3_in_ready;
-  wire lst3_valid; wire lst3_ready;
-  wire [32-1:0] int4;
-  wire inst5_in_ready;
-
-  wire [(32)-1:0] intf5_addr;
-  wire               intf5_we;
-  wire [(32)-1:0] intf5_di;
-  wire [(32)-1:0] intf5_do;
-  wire               intf5_valid;
-  wire               intf5_ready;
-  localparam lst6_valid = 1'b1; wire lst6_ready;
-  wire [32-1:0] int7;
-  wire inst8_in_ready;
-  wire [32-1:0] lst8; wire lst8_valid; wire lst8_ready;
-
-  reg active = 1'b0;
-  assign in_ready = ~active & inst3_in_ready;
-
-  wire inst3_out_valid;
-  __primitive_ap01 #(.in0N(32), .out0N(0), .out1N(32)) __primitive_ap01_inst3(
-
-      .clk(clk),
-      .nrst(nrst),
-      .in_valid(active),
-      .out_valid(inst3_out_valid),
-      .in_ready(inst3_in_ready),
-      .out_ready(inst5_in_ready),
-      .in0(lst1), .in0_valid(lst1_valid), .in0_ready(lst1_ready),
-      .out0_valid(lst3_valid), .out0_ready(lst3_ready),
-      .out1(int4)
-    );
-
-  wire inst5_out_valid;
-  __primitive_read_array #(.in0AN(32), .in0DN(32), .in1N(32), .out0AN(32), .out0DN(32), .out1N(32)) __primitive_read_array_inst5(
-
-      .clk(clk),
-      .nrst(nrst),
-      .in_valid(inst3_out_valid),
-      .out_valid(inst5_out_valid),
-      .in_ready(inst5_in_ready),
-      .out_ready(inst8_in_ready),
-
-      .in0_addr(intf2_addr),
-      .in0_we(intf2_we),
-      .in0_di(intf2_di),
-      .in0_do(intf2_do),
-      .in0_valid(intf2_valid),
-      .in0_ready(intf2_ready),
-      .in1(int4),
-
-      .out0_addr(intf5_addr),
-      .out0_we(intf5_we),
-      .out0_di(intf5_di),
-      .out0_do(intf5_do),
-      .out0_valid(intf5_valid),
-      .out0_ready(intf5_ready),
-      .out1(int7)
-    );
-    assign {intf5_addr, intf5_we, intf5_di, intf5_valid} = 0;
-    assign lst3_ready = 1'b1;
-
-  wire inst8_out_valid;
-  __primitive_pushr1 #(.in0N(0), .in1N(32), .out0N(32)) __primitive_pushr1_inst8(
-
-      .clk(clk),
-      .nrst(nrst),
-      .in_valid(inst5_out_valid),
-      .out_valid(inst8_out_valid),
-      .in_ready(inst8_in_ready),
-      .out_ready(1'b1),
-      .in0_valid(lst6_valid), .in0_ready(lst6_ready),
-      .in1(int7),
-      .out0(lst8), .out0_valid(lst8_valid), .out0_ready(lst8_ready)
-    );
-    wire block1_valid = inst8_out_valid;
-
-  wire valid = 1'b0;
-  assign out_valid = active & valid;
-
-  always @(posedge clk) begin
-    if(!nrst) begin
-      active <= 1'b0;
-    end
-    else if(in_valid & ~active) begin
-      active <= 1'b1;
-    end
-    else if(valid) begin
-       if(out_ready) active <= 1'b0;
-    end
-    else begin
-      if(block1_valid) begin
-      end
-    end
-  end
-
-  assign out0 = lst8;
-  assign out0_valid = lst8_valid;
-  assign lst8_ready = out0_ready;
-
-endmodule
 module array (
   input wire clk,
 
   input  wire [(9)-1:0] out0_addr,
   input  wire               out0_we,
-  input  wire [(9)-1:0] out0_di,
-  output wire [(9)-1:0] out0_do,
+  input  wire [(32)-1:0] out0_di,
+  output wire [(32)-1:0] out0_do,
   input  wire               out0_valid,
   output wire               out0_ready
 );
@@ -1067,7 +1169,7 @@ module tests_axi_lite_slave_top
     wire inst_in_ready;
 
   wire inst_out_valid;
-  tests_axi_lite_slave #() tests_axi_lite_slave_inst(
+  tests_axil_map_w #() tests_axil_map_w_inst(
 
       .clk(clk),
       .nrst(nrst),

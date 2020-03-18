@@ -6,11 +6,8 @@ ARCHIVE=archive
 
 ${ARCHIVE}/timestamp: ${BUILD}/nf_popr.mcs
 	@mkdir -p $(dir $@)
-	tar czvf ${ARCHIVE}/nf_popr_`date +%Y%m%d_%H%M%S -r $<`.tar.gz \
-	   ${BUILD}/nf_popr.mcs \
-           ${BUILD}/nf_popr.bit \
-	   ${BUILD}/*.dcp
-	 echo `date +%Y%m%d_%H%M%S -r $<` > $@
+	tar czvf ${ARCHIVE}/nf_popr_`date +%Y%m%d_%H%M%S -r $<`.tar.gz ${BUILD}/*.{dcp,bit,mcs}
+	echo `date +%Y%m%d_%H%M%S -r $<` > $@
 
 ${BUILD}/nf_popr.mcs: scripts/write_mcs.tcl ${BUILD}/nf_popr.bit
 	@mkdir -p $(dir $@)
@@ -28,3 +25,8 @@ ${BUILD}/%.dcp: scripts/build_%.tcl
 .PHONY: clean
 clean:
 	rm -rf ${BUILD}
+
+.PHONY: prog_partial
+prog_partial: ${BUILD}/reconfigurable_module.dcp
+	(cd ${BUILD}; vivado -mode batch -source ${ROOT}scripts/program.tcl)
+
